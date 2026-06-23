@@ -118,14 +118,28 @@ class ArticleController extends Controller
     {
         abort_if($article->ai_generated_at === null, 404);
 
+        // Count view once per session per article
+        $sessionKey = 'viewed_' . $article->id;
+        if (! session()->has($sessionKey)) {
+            $article->increment('views');
+            session()->put($sessionKey, true);
+        }
+
         $related = Article::query()
             ->where('id', '!=', $article->id)
             ->whereNotNull('ai_generated_at')
             ->when($article->category, fn ($q) => $q->where('category', $article->category))
             ->latest('published_at')
-            ->limit(4)
+            ->limit(3)
             ->get();
 
         return view('articles.show', compact('article', 'related'));
+    }
+
+    public function like(Article $article)
+    {
+        abort_if($article->ai_generated_at === null, 404);
+        $article->increment('likes');
+        return response()->json(['likes' => $article->fresh()->likes]);
     }
 }

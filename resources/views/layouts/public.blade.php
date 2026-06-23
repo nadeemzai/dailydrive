@@ -2640,7 +2640,180 @@
                 grid-template-columns: 1fr;
             }
         }
+
+        /* ── Bookmark button on cards ── */
+        .acard { position: relative; }
+        .acard-bookmark {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            width: 30px;
+            height: 30px;
+            border-radius: 50%;
+            background: rgba(255,255,255,0.92);
+            border: 1px solid rgba(0,0,0,0.1);
+            backdrop-filter: blur(4px);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            color: var(--muted);
+            transition: all 0.15s;
+            box-shadow: 0 1px 4px rgba(0,0,0,0.12);
+            z-index: 2;
+        }
+        .acard-bookmark:hover { background: #fff; color: var(--brand); border-color: var(--brand); transform: scale(1.08); }
+        .acard-bookmark.bookmarked { background: var(--brand); color: #fff; border-color: var(--brand); }
+        .acard-bookmark.bookmarked svg { fill: #fff; stroke: #fff; }
+
+        /* ── Toast notification ── */
+        .eng-toast {
+            position: fixed;
+            bottom: 28px;
+            left: 50%;
+            transform: translateX(-50%) translateY(20px);
+            background: #1a1a2e;
+            color: #fff;
+            padding: 10px 20px;
+            border-radius: 999px;
+            font-size: 0.83rem;
+            font-weight: 600;
+            white-space: nowrap;
+            z-index: 9999;
+            opacity: 0;
+            transition: opacity 0.22s, transform 0.22s;
+            pointer-events: none;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.25);
+        }
+        .eng-toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+
+        /* ── Bookmark panel ── */
+        .bm-panel {
+            position: fixed;
+            top: 0; right: 0; bottom: 0;
+            width: min(340px, 90vw);
+            background: var(--bg-card);
+            border-left: 1px solid var(--border);
+            box-shadow: -8px 0 32px rgba(0,0,0,0.12);
+            z-index: 1000;
+            display: flex;
+            flex-direction: column;
+            transform: translateX(100%);
+            transition: transform 0.28s cubic-bezier(.4,0,.2,1);
+        }
+        .bm-panel.open { transform: translateX(0); }
+        .bm-panel-hd {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 16px 18px;
+            border-bottom: 1px solid var(--border);
+            font-weight: 800;
+            font-size: 0.95rem;
+        }
+        .bm-panel-close {
+            width: 28px; height: 28px;
+            border-radius: 50%;
+            border: 1px solid var(--border);
+            background: var(--bg);
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1rem;
+            color: var(--muted);
+        }
+        .bm-panel-close:hover { background: var(--bg-hover); color: var(--text); }
+        .bm-panel-list { flex: 1; overflow-y: auto; padding: 8px 0; }
+        .bm-item {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 10px 16px;
+            border-bottom: 1px solid var(--border);
+            transition: background 0.12s;
+        }
+        .bm-item:hover { background: var(--bg-hover); }
+        .bm-item-img {
+            width: 52px; height: 40px;
+            border-radius: 6px;
+            object-fit: cover;
+            flex-shrink: 0;
+            background: var(--bg);
+        }
+        .bm-item-info { flex: 1; min-width: 0; }
+        .bm-item-title {
+            font-size: 0.81rem;
+            font-weight: 600;
+            color: var(--text-2);
+            line-height: 1.3;
+            display: -webkit-box;
+            -webkit-line-clamp: 2;
+            -webkit-box-orient: vertical;
+            overflow: hidden;
+        }
+        .bm-item-cat { font-size: 0.7rem; color: var(--muted); margin-top: 2px; }
+        .bm-item-rm {
+            flex-shrink: 0;
+            background: none; border: none;
+            color: var(--muted-2);
+            cursor: pointer;
+            padding: 4px;
+            border-radius: 4px;
+            font-size: 0.85rem;
+            transition: color 0.12s;
+        }
+        .bm-item-rm:hover { color: var(--red); }
+        .bm-empty {
+            text-align: center;
+            padding: 48px 24px;
+            color: var(--muted);
+            font-size: 0.84rem;
+        }
+        .bm-overlay {
+            position: fixed; inset: 0;
+            background: rgba(0,0,0,0.35);
+            z-index: 999;
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.28s;
+        }
+        .bm-overlay.open { opacity: 1; pointer-events: all; }
+
+        /* Bookmark nav badge */
+        .bm-nav-btn {
+            position: relative;
+            display: inline-flex;
+            align-items: center;
+            gap: 5px;
+            padding: 6px 10px;
+            border-radius: var(--r-sm);
+            border: 1px solid var(--border);
+            background: var(--bg-card);
+            color: var(--muted);
+            font-size: 0.8rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.13s;
+        }
+        .bm-nav-btn:hover { border-color: var(--brand); color: var(--brand); background: var(--brand-bg); }
+        .bm-badge {
+            position: absolute;
+            top: -5px; right: -5px;
+            min-width: 16px; height: 16px;
+            padding: 0 4px;
+            background: var(--brand);
+            color: #fff;
+            border-radius: 999px;
+            font-size: 0.65rem;
+            font-weight: 800;
+            display: none;
+            align-items: center;
+            justify-content: center;
+        }
+        .bm-badge.has-items { display: flex; }
     </style>
+    <meta name="csrf-token" content="{{ csrf_token() }}">
 </head>
 
 <body>
@@ -2699,6 +2872,12 @@
 
                 {{-- Right: Search + Subscribe --}}
                 <div class="nav-right">
+                    {{-- Bookmarks button --}}
+                    <button class="bm-nav-btn" onclick="openBookmarks()" title="Saved articles">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"/></svg>
+                        Saved
+                        <span class="bm-badge" id="bm-nav-badge"></span>
+                    </button>
                     <button class="nav-search-btn" id="search-open" aria-label="Search articles">
                         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor"
                             stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
@@ -3087,6 +3266,126 @@
         });
     </script>
 
+    {{-- ═══════════════════════════════════════════
+         BOOKMARK PANEL
+    ═══════════════════════════════════════════ --}}
+    <div class="bm-overlay" id="bm-overlay" onclick="closeBookmarks()"></div>
+    <div class="bm-panel" id="bm-panel">
+        <div class="bm-panel-hd">
+            <span>
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px;margin-right:5px;"><path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"/></svg>
+                Saved Articles
+            </span>
+            <button class="bm-panel-close" onclick="closeBookmarks()">&#x2715;</button>
+        </div>
+        <div class="bm-panel-list" id="bm-panel-list"></div>
+    </div>
+
+    {{-- ═══════════════════════════════════════════
+         TOAST
+    ═══════════════════════════════════════════ --}}
+    <div class="eng-toast" id="eng-toast"></div>
+
+    <script>
+    // ─── TOAST ───────────────────────────────────
+    function showToast(msg) {
+        var t = document.getElementById('eng-toast');
+        t.textContent = msg;
+        t.classList.add('show');
+        clearTimeout(t._timer);
+        t._timer = setTimeout(function() { t.classList.remove('show'); }, 2400);
+    }
+
+    // ─── BOOKMARKS ───────────────────────────────
+    function getBookmarks() {
+        try { return JSON.parse(localStorage.getItem('dd_bookmarks') || '[]'); }
+        catch(e) { return []; }
+    }
+    function saveBookmarks(list) {
+        localStorage.setItem('dd_bookmarks', JSON.stringify(list));
+    }
+    function isBookmarked(slug) {
+        return getBookmarks().some(function(b) { return b.slug === slug; });
+    }
+
+    function toggleBookmark(evt, slug, title, image, category) {
+        if (evt) evt.preventDefault();
+        var list = getBookmarks();
+        var idx  = list.findIndex(function(b) { return b.slug === slug; });
+        if (idx === -1) {
+            list.unshift({ slug: slug, title: title, image: image, category: category });
+            saveBookmarks(list);
+            showToast('✓ Saved to bookmarks');
+        } else {
+            list.splice(idx, 1);
+            saveBookmarks(list);
+            showToast('Removed from bookmarks');
+        }
+        syncBookmarkButtons(slug);
+        updateBadge();
+        renderBookmarkPanel();
+    }
+
+    function syncBookmarkButtons(slug) {
+        var on = isBookmarked(slug);
+        document.querySelectorAll('[data-slug="' + slug + '"]').forEach(function(btn) {
+            btn.classList.toggle('bookmarked', on);
+        });
+    }
+
+    function updateBadge() {
+        var count = getBookmarks().length;
+        var badge = document.getElementById('bm-nav-badge');
+        if (!badge) return;
+        badge.textContent = count > 99 ? '99+' : count;
+        badge.classList.toggle('has-items', count > 0);
+    }
+
+    function renderBookmarkPanel() {
+        var list = getBookmarks();
+        var el   = document.getElementById('bm-panel-list');
+        if (!el) return;
+        if (list.length === 0) {
+            el.innerHTML = '<div class="bm-empty">No saved articles yet.<br>Tap the bookmark icon on any article.</div>';
+            return;
+        }
+        el.innerHTML = list.map(function(b) {
+            var imgHtml = b.image
+                ? '<img class="bm-item-img" src="' + b.image + '" alt="" loading="lazy">'
+                : '<div class="bm-item-img" style="background:var(--bg-hover);display:flex;align-items:center;justify-content:center;font-size:1.2rem;">📰</div>';
+            return '<div class="bm-item">' +
+                '<a href="/articles/' + b.slug + '" style="display:flex;align-items:center;gap:10px;flex:1;min-width:0;" onclick="closeBookmarks()">' +
+                imgHtml +
+                '<div class="bm-item-info"><div class="bm-item-title">' + b.title + '</div>' +
+                '<div class="bm-item-cat">' + (b.category || '') + '</div></div></a>' +
+                '<button class="bm-item-rm" onclick="toggleBookmark(null,\'' + b.slug + '\',\'' + b.title.replace(/'/g,"\\'") + '\',\'' + (b.image||'').replace(/'/g,"\\'") + '\',\'' + (b.category||'') + '\')" title="Remove">&#x2715;</button>' +
+                '</div>';
+        }).join('');
+    }
+
+    function openBookmarks() {
+        renderBookmarkPanel();
+        document.getElementById('bm-panel').classList.add('open');
+        document.getElementById('bm-overlay').classList.add('open');
+        document.body.style.overflow = 'hidden';
+    }
+    function closeBookmarks() {
+        document.getElementById('bm-panel').classList.remove('open');
+        document.getElementById('bm-overlay').classList.remove('open');
+        document.body.style.overflow = '';
+    }
+
+    // ─── INIT on page load ───────────────────────
+    document.addEventListener('DOMContentLoaded', function() {
+        updateBadge();
+        // Set bookmarked state for all bookmark buttons on page
+        document.querySelectorAll('[data-slug]').forEach(function(btn) {
+            if (isBookmarked(btn.dataset.slug)) btn.classList.add('bookmarked');
+        });
+    });
+    </script>
+
+    @yield('page_scripts')
 
 </body>
 

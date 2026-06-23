@@ -42,6 +42,9 @@ class Article extends Model
         'ai_generated_at',
         'published_at',
         'scraped_at',
+        // engagement
+        'views',
+        'likes',
     ];
 
     protected $casts = [

@@ -42,6 +42,10 @@ class ContentGenerationService
                 $newTitle = $generated['title'] ?: $article->title;
                 $newSlug  = $this->uniqueSlug($newTitle, $article->id);
 
+                $imageUrl = $this->fetchPexelsImage(
+                    ($generated['category'] ?: $article->category) . ' ' . $newTitle
+                ) ?? $article->image_url;
+
                 $article->forceFill([
                     'ai_provider_id' => $attemptProvider->id,
                     'ai_provider'    => $attemptProvider->provider,
@@ -54,6 +58,7 @@ class ContentGenerationService
                     'excerpt'      => $generated['excerpt'] ?: $article->excerpt,
                     'content_html' => $generated['content_html'] ?: $this->fallbackHtml($generated['excerpt'] ?: $article->excerpt),
                     'category'     => $generated['category'] ?: $article->category,
+                    'image_url'    => $imageUrl,
 
                     'published_at' => now(),
 
@@ -588,6 +593,51 @@ class ContentGenerationService
     // ─────────────────────────────────────────────────────────────────
     // UTILITIES
     // ─────────────────────────────────────────────────────────────────
+
+    protected function fetchPexelsImage(string $query): ?string
+    {
+        $apiKey = config('services.pexels.key');
+
+        if (empty($apiKey)) {
+            return null;
+        }
+
+        // Keep query concise — first 8 words is enough for Pexels search
+        $query = implode(' ', array_slice(preg_split('/\s+/', trim($query)), 0, 8));
+
+        try {
+            $response = Http::withHeaders(['Authorization' => $apiKey])
+                ->timeout(10)
+                ->get('https://api.pexels.com/v1/search', [
+                    'query'       => $query,
+                    'per_page'    => 5,
+                    'orientation' => 'landscape',
+                    'size'        => 'medium',
+                ]);
+
+            if (! $response->successful()) {
+                Log::warning('Pexels API error.', ['status' => $response->status(), 'query' => $query]);
+                return null;
+            }
+
+            $photos = $response->json('photos', []);
+
+            if (empty($photos)) {
+                return null;
+            }
+
+            // Pick randomly from top 5 so repeated topics don't always get the same photo
+            $photo = $photos[array_rand($photos)];
+
+            return data_get($photo, 'src.large2x')
+                ?? data_get($photo, 'src.large')
+                ?? data_get($photo, 'src.original');
+
+        } catch (Throwable $e) {
+            Log::warning('Pexels image fetch failed.', ['error' => $e->getMessage(), 'query' => $query]);
+            return null;
+        }
+    }
 
     protected function uniqueSlug(string $title, int $articleId): string
     {

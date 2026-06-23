@@ -15,6 +15,7 @@ use Illuminate\Support\Facades\Route;
 Route::get('/', [ArticleController::class, 'index'])->name('home');
 Route::get('/articles', [ArticleController::class, 'listing'])->name('articles.index');
 Route::get('/articles/{article:slug}', [ArticleController::class, 'show'])->name('articles.show');
+Route::post('/articles/{article:slug}/like', [ArticleController::class, 'like'])->name('articles.like');
 Route::get('/about',          fn() => view('about'))->name('about');
 Route::get('/privacy-policy', fn() => view('privacy-policy'))->name('privacy');
 Route::get('/terms',          fn() => view('terms'))->name('terms');
