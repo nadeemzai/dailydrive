@@ -19,6 +19,7 @@ class Article extends Model
         'source_name',
         'source_domain',
         'category',
+        'status',
         'source_url_hash',
         'source_url',
         'title',
@@ -50,6 +51,16 @@ class Article extends Model
         'generated_faq_json'  => 'array',
         'generated_review_json' => 'array',
     ];
+
+    // ─────────────────────────────────────────────────────────────────
+    // SCOPES
+    // ─────────────────────────────────────────────────────────────────
+
+    /** Only articles that are still within their 7-day active window. */
+    public function scopeActive($query)
+    {
+        return $query->where('status', 'active');
+    }
 
     // ─────────────────────────────────────────────────────────────────
     // RELATIONSHIPS
@@ -128,4 +139,5 @@ class Article extends Model
     {
         return 'slug';
     }
+
 }

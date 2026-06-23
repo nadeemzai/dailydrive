@@ -14,10 +14,38 @@ use Illuminate\Support\Str;
 
 class ArticleController extends Controller
 {
-    public function index()
+    public function index(Request $request)
     {
+        $statusFilter = $request->query('status', 'all');   // all | published | inactive | draft
+        $search       = $request->query('search', '');
+
+        $query = Article::query()
+            ->when($search, function ($q) use ($search) {
+                $q->where(function ($q) use ($search) {
+                    $q->where('title', 'like', "%{$search}%")
+                      ->orWhere('generated_title', 'like', "%{$search}%")
+                      ->orWhere('slug', 'like', "%{$search}%");
+                });
+            })
+            ->when($statusFilter === 'published', fn ($q) => $q->whereNotNull('ai_generated_at'))
+            ->when($statusFilter === 'inactive',  fn ($q) => $q->where('status', 'inactive'))
+            ->when($statusFilter === 'draft',     fn ($q) => $q->whereNull('ai_generated_at'))
+            ->latest('published_at')
+            ->latest('id');
+
+        // Counts for filter tabs
+        $counts = [
+            'all'       => Article::count(),
+            'published' => Article::whereNotNull('ai_generated_at')->count(),
+            'inactive'  => Article::where('status', 'inactive')->count(),
+            'draft'     => Article::whereNull('ai_generated_at')->count(),
+        ];
+
         return view('admin.articles.index', [
-            'articles' => Article::query()->latest('published_at')->latest('id')->paginate(15),
+            'articles'      => $query->paginate(15)->withQueryString(),
+            'statusFilter'  => $statusFilter,
+            'search'        => $search,
+            'counts'        => $counts,
         ]);
     }
 
@@ -113,6 +141,62 @@ class ArticleController extends Controller
         $article->delete();
 
         return redirect()->route('admin.articles.index')->with('status', 'Article deleted.');
+    }
+
+    public function archive(Request $request)
+    {
+        $search   = $request->query('search', '');
+        $category = $request->query('category', '');
+        $filterBy = $request->query('filter_by', 'published'); // published | expired
+        $from     = $request->query('from', '');
+        $to       = $request->query('to', '');
+
+        $base = Article::where('status', 'inactive')->whereNotNull('ai_generated_at');
+
+        $categories = (clone $base)
+            ->whereNotNull('category')
+            ->selectRaw('category, count(*) as cnt')
+            ->groupBy('category')
+            ->orderBy('category')
+            ->get();
+
+        $articles = Article::where('status', 'inactive')
+            ->whereNotNull('ai_generated_at')
+            ->when($category, fn ($q) => $q->where('category', $category))
+            ->when($search, function ($q) use ($search) {
+                $q->where(function ($q) use ($search) {
+                    $q->where('title', 'like', "%{$search}%")
+                      ->orWhere('generated_title', 'like', "%{$search}%");
+                });
+            })
+            // Filter by PUBLISHED date range
+            ->when($filterBy === 'published' && $from, fn ($q) => $q->whereDate('published_at', '>=', $from))
+            ->when($filterBy === 'published' && $to,   fn ($q) => $q->whereDate('published_at', '<=', $to))
+            // Filter by EXPIRED date range (published_at + 7 days)
+            ->when($filterBy === 'expired' && $from, fn ($q) => $q->whereRaw('DATE(DATE_ADD(published_at, INTERVAL 7 DAY)) >= ?', [$from]))
+            ->when($filterBy === 'expired' && $to,   fn ($q) => $q->whereRaw('DATE(DATE_ADD(published_at, INTERVAL 7 DAY)) <= ?', [$to]))
+            ->latest('published_at')
+            ->paginate(15)
+            ->withQueryString();
+
+        return view('admin.articles.archive', compact(
+            'articles', 'categories', 'search', 'category',
+            'filterBy', 'from', 'to'
+        ));
+    }
+
+    public function toggleStatus(Article $article)
+    {
+        $newStatus = $article->status === 'active' ? 'inactive' : 'active';
+        $article->update(['status' => $newStatus]);
+
+        SitemapController::clearCache();
+
+        $msg = $newStatus === 'active'
+            ? 'Article marked active — now visible on the site.'
+            : 'Article marked inactive — hidden from the site.';
+
+        return redirect()->back()->with('status', $msg);
     }
 
     public function togglePublish(Article $article)

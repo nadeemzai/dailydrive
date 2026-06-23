@@ -38,6 +38,8 @@ Route::prefix('admin')->name('admin.')->middleware(\App\Http\Middleware\AdminMid
     Route::resource('articles', AdminArticleController::class)->except(['show']);
     Route::post('articles/{article}/regenerate', [AdminArticleController::class, 'regenerate'])->name('articles.regenerate');
     Route::post('articles/{article}/publish',    [AdminArticleController::class, 'togglePublish'])->name('articles.publish');
+    Route::post('articles/{article}/status',     [AdminArticleController::class, 'toggleStatus'])->name('articles.status');
+    Route::get('archive',                        [AdminArticleController::class, 'archive'])->name('archive');
 
     Route::resource('ai-providers', AiProviderController::class)->except(['show']);
     Route::resource('sources', AdminSourceController::class)->except(['show']);

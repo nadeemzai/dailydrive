@@ -1,12 +1,12 @@
 @extends('layouts.public')
 
-@section('title', $search ? 'Search: ' . $search . ' — DAILYdRIVE' : ($category ? $category . ' — DAILYdRIVE' : 'All Articles — DAILYdRIVE'))
-@section('meta_description', $category ? 'Browse all ' . $category . ' articles on DAILYdRIVE.' : 'Browse all articles on DAILYdRIVE — AI-powered tech news.')
+@section('title', $search ? 'Archive Search: ' . $search . ' — DAILYdRIVE' : ($category ? 'Archive: ' . $category . ' — DAILYdRIVE' : 'Article Archive — DAILYdRIVE'))
+@section('meta_description', 'Browse archived articles on DAILYdRIVE — older content no longer featured on the main listing.')
 
 @section('content')
 
 <style>
-    /* ── Listing layout ── */
+    /* ── Layout (same as listing) ── */
     .listing-wrap {
         display: grid;
         grid-template-columns: 268px 1fr;
@@ -15,7 +15,6 @@
         align-items: start;
     }
 
-    /* ── Sidebar ── */
     .listing-sidebar {
         position: sticky;
         top: calc(var(--nav-h) + 3px + 20px);
@@ -96,11 +95,7 @@
     }
 
     .sbar-cat-link:last-child { border-bottom: none; }
-
-    .sbar-cat-link:hover {
-        background: var(--bg-hover);
-        color: var(--brand);
-    }
+    .sbar-cat-link:hover { background: var(--bg-hover); color: var(--brand); }
 
     .sbar-cat-link.is-active {
         background: var(--brand-bg);
@@ -121,9 +116,9 @@
     }
 
     .sbar-cat-link.is-active .sbar-cat-count {
-        background: rgba(80, 70, 228, 0.1);
+        background: rgba(80,70,228,0.1);
         color: var(--brand);
-        border-color: rgba(80, 70, 228, 0.2);
+        border-color: rgba(80,70,228,0.2);
     }
 
     /* ── Main content ── */
@@ -156,7 +151,7 @@
         width: 4px;
         height: 22px;
         border-radius: 2px;
-        background: var(--brand);
+        background: var(--muted-2);
         flex-shrink: 0;
     }
 
@@ -187,6 +182,23 @@
         background: var(--brand-bg);
     }
 
+    /* ── Archive notice banner ── */
+    .archive-notice {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        padding: 10px 16px;
+        background: rgba(217, 119, 6, 0.07);
+        border: 1px solid rgba(217, 119, 6, 0.2);
+        border-radius: var(--r-lg);
+        font-size: 0.82rem;
+        color: #92400e;
+        margin-bottom: 20px;
+        line-height: 1.5;
+    }
+
+    .archive-notice svg { flex-shrink: 0; opacity: 0.7; }
+
     /* ── 2-column article grid ── */
     .listing-grid {
         display: grid;
@@ -209,28 +221,6 @@
     .listing-empty-icon { font-size: 2.6rem; margin-bottom: 12px; opacity: 0.5; }
     .listing-empty-title { font-size: 1.05rem; font-weight: 700; color: var(--text-2); margin-bottom: 6px; }
     .listing-empty-desc { font-size: 0.85rem; max-width: 38ch; margin: 0 auto; line-height: 1.7; }
-
-    /* ── Suggested articles header ── */
-    .listing-suggested-hd {
-        display: flex;
-        align-items: center;
-        gap: 10px;
-        font-size: 1rem;
-        font-weight: 800;
-        letter-spacing: -0.02em;
-        color: var(--text);
-        margin: 36px 0 18px;
-    }
-
-    .listing-suggested-hd::before {
-        content: '';
-        display: block;
-        width: 4px;
-        height: 18px;
-        border-radius: 2px;
-        background: var(--muted-2);
-        flex-shrink: 0;
-    }
 
     /* ── Responsive ── */
     @media (max-width: 1000px) {
@@ -259,16 +249,16 @@
 
             {{-- Search box --}}
             <div class="sbar-card">
-                <form action="{{ route('articles.index') }}" method="GET">
+                <form action="{{ route('articles.archive') }}" method="GET">
                     @if ($category)
                         <input type="hidden" name="category" value="{{ $category }}">
                     @endif
-                    <div class="sbar-search-wrap">
+                    <div class="sbar-search-wrap" >
                         <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
                             <circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>
                         </svg>
                         <input class="sbar-search-input" type="text" name="search"
-                               value="{{ $search }}" placeholder="Search articles…" autocomplete="off">
+                               value="{{ $search }}" placeholder="Search archive…" autocomplete="off">
                         <button class="sbar-search-btn" type="submit">Search</button>
                     </div>
                 </form>
@@ -276,15 +266,15 @@
 
             {{-- Category filter --}}
             <div class="sbar-card">
-                <div class="sbar-hd">Browse Categories</div>
+                <div class="sbar-hd">Archive Categories</div>
                 <nav>
-                    <a href="{{ route('articles.index', $search ? ['search' => $search] : []) }}"
+                    <a href="{{ route('articles.archive', $search ? ['search' => $search] : []) }}"
                        class="sbar-cat-link {{ !$category ? 'is-active' : '' }}">
-                        <span>All Articles</span>
-                        <span class="sbar-cat-count">{{ $totalCount }}</span>
+                        <span>All Archived</span>
+                        <span class="sbar-cat-count">{{ $archiveCount }}</span>
                     </a>
                     @foreach ($categories as $cat)
-                        <a href="{{ route('articles.index', array_filter(['category' => $cat->category, 'search' => $search])) }}"
+                        <a href="{{ route('articles.archive', array_filter(['category' => $cat->category, 'search' => $search])) }}"
                            class="sbar-cat-link {{ $category === $cat->category ? 'is-active' : '' }}">
                             <span>{{ $cat->category }}</span>
                             <span class="sbar-cat-count">{{ $cat->cnt }}</span>
@@ -293,6 +283,16 @@
                 </nav>
             </div>
 
+            {{-- Back to live articles --}}
+            <div class="sbar-card">
+                <a href="{{ route('articles.index') }}" class="sbar-cat-link" style="border-bottom:none;">
+                    <span style="display:flex; align-items:center; gap:7px;">
+                        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="opacity:.6; flex-shrink:0;"><polyline points="15 18 9 12 15 6"/></svg>
+                        Live Articles
+                    </span>
+                    <span class="sbar-cat-count">{{ $totalCount }}</span>
+                </a>
+            </div>
 
         </aside>
 
@@ -307,56 +307,56 @@
                     <div class="listing-hd-title">
                         @if ($search)
                             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="opacity:.55"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
-                            Search: "{{ $search }}"
+                            Archive: "{{ $search }}"
                         @elseif ($category)
-                            {{ $category }}
+                            Archive: {{ $category }}
                         @else
-                            All Articles
+                            Article Archive
                         @endif
                     </div>
                     <div class="listing-hd-count">
-                        {{ $articles->total() }} {{ Str::plural('article', $articles->total()) }} found
+                        {{ $articles->total() }} archived {{ Str::plural('article', $articles->total()) }}
                     </div>
                 </div>
                 @if ($search || $category)
-                    <a href="{{ route('articles.index') }}" class="listing-clear-link">
+                    <a href="{{ route('articles.archive') }}" class="listing-clear-link">
                         <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
                         Clear filter
                     </a>
                 @endif
             </div>
 
+            {{-- Archive notice --}}
+            <div class="archive-notice">
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="21 8 21 21 3 21 3 8"/><rect x="1" y="3" width="22" height="5"/><line x1="10" y1="12" x2="14" y2="12"/></svg>
+                These articles were published more than 7 days ago and are no longer featured on the main listing.
+            </div>
+
+            {{-- Flash message --}}
+            @if (session('info'))
+                <div style="padding:10px 16px; background:rgba(80,70,228,0.07); border:1px solid rgba(80,70,228,0.18); border-radius:var(--r-lg); font-size:0.84rem; color:var(--brand); margin-bottom:18px;">
+                    {{ session('info') }}
+                </div>
+            @endif
+
             {{-- Articles grid --}}
             @if ($articles->isEmpty())
-
                 <div class="listing-empty">
-                    <div class="listing-empty-icon">{{ $search ? '&#128269;' : '&#128240;' }}</div>
+                    <div class="listing-empty-icon">&#128269;</div>
                     @if ($search)
-                        <div class="listing-empty-title">No results for "{{ $search }}"</div>
-                        <p class="listing-empty-desc">Try different keywords or browse a category from the sidebar.</p>
+                        <div class="listing-empty-title">No archived articles match "{{ $search }}"</div>
+                        <p class="listing-empty-desc">Try different keywords or browse a category.</p>
                     @else
-                        <div class="listing-empty-title">No articles in this category yet</div>
-                        <p class="listing-empty-desc">Check back soon or browse other categories.</p>
+                        <div class="listing-empty-title">No archived articles yet</div>
+                        <p class="listing-empty-desc">Articles older than 7 days will appear here automatically.</p>
                     @endif
                     <a href="{{ route('articles.index') }}"
                        style="display:inline-flex;align-items:center;gap:6px;margin-top:16px;padding:8px 20px;border-radius:8px;background:var(--brand);color:#fff;font-size:0.84rem;font-weight:700;transition:background 0.14s;"
                        onmouseover="this.style.background='var(--brand-2)'" onmouseout="this.style.background='var(--brand)'">
-                        Browse all articles
+                        Browse live articles
                     </a>
                 </div>
-
-                {{-- Show 3 recent articles as suggestions on search no-results --}}
-                @if ($suggestedArticles->isNotEmpty())
-                    <div class="listing-suggested-hd">Recent Articles</div>
-                    <div class="listing-grid">
-                        @foreach ($suggestedArticles as $article)
-                            @include('articles._card', ['article' => $article])
-                        @endforeach
-                    </div>
-                @endif
-
             @else
-
                 <div class="listing-grid">
                     @foreach ($articles as $article)
                         @include('articles._card', ['article' => $article])
@@ -364,7 +364,6 @@
                 </div>
 
                 {{ $articles->links() }}
-
             @endif
 
         </main>

@@ -10,11 +10,13 @@ class SitemapController extends Controller
     public function index()
     {
         $xml = Cache::remember('sitemap.xml', 3600, function () {
-            $articles = Article::whereNotNull('ai_generated_at')
+            $articles = Article::active()
+                ->whereNotNull('ai_generated_at')
                 ->latest('published_at')
                 ->get(['slug', 'published_at', 'updated_at', 'ai_generated_at']);
 
-            $categories = Article::whereNotNull('ai_generated_at')
+            $categories = Article::active()
+                ->whereNotNull('ai_generated_at')
                 ->whereNotNull('category')
                 ->distinct()
                 ->orderBy('category')

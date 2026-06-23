@@ -9,7 +9,6 @@ class ArticleController extends Controller
 {
     public function index(Request $request)
     {
-        // Redirect category/search queries to the dedicated listing page
         if ($request->filled('category') || $request->filled('search')) {
             return redirect()->route('articles.index', $request->only(['category', 'search']));
         }

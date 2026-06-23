@@ -20,6 +20,10 @@ Schedule::command('blog:auto-publish --scrape-limit=20 --regen-limit=10')
     ->withoutOverlapping(5)
     ->runInBackground();
 
+Schedule::command('articles:expire')
+    ->dailyAt('00:05')
+    ->runInBackground();
+
 // Schedule::command('news:scrape --limit=30 --backfill')
 //     ->dailyAt('03:00')
 //     ->withoutOverlapping(30)
