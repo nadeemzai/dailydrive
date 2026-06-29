@@ -46,18 +46,13 @@
                         <div class="form-group">
                             <label class="form-label">Provider <span style="color:var(--red);">*</span></label>
                             <select class="form-control" name="provider" id="provider-select">
-                                <option value="gemini" @selected(old('provider', $provider->provider) === 'gemini')>
-                                    Gemini (Google)
-                                </option>
-                                <option value="openai" @selected(old('provider', $provider->provider) === 'openai')>
-                                    OpenAI (GPT)
-                                </option>
-                                <option value="claude" @selected(old('provider', $provider->provider) === 'claude')>
-                                    Claude (Anthropic)
-                                </option>
-                                <option value="deepseek" @selected(old('provider', $provider->provider) === 'deepseek')>
-                                    DeepSeek AI
-                                </option>
+                                <option value="gemini"            @selected(old('provider', $provider->provider) === 'gemini')>Gemini (Google)</option>
+                                <option value="openai"            @selected(old('provider', $provider->provider) === 'openai')>OpenAI (GPT)</option>
+                                <option value="claude"            @selected(old('provider', $provider->provider) === 'claude')>Claude (Anthropic)</option>
+                                <option value="deepseek"          @selected(old('provider', $provider->provider) === 'deepseek')>DeepSeek AI</option>
+                                <option value="groq"              @selected(old('provider', $provider->provider) === 'groq')>Groq (Fast Inference)</option>
+                                <option value="glm"               @selected(old('provider', $provider->provider) === 'glm')>GLM (Zhipu AI)</option>
+                                <option value="openai_compatible" @selected(old('provider', $provider->provider) === 'openai_compatible')>OpenAI Compatible (Custom)</option>
                             </select>
                         </div>
 
@@ -80,13 +75,27 @@
                             </label>
                             <div style="position:relative;">
                                 <input class="form-control" type="password" name="api_key" id="api-key-input"
-                                       placeholder="{{ $provider->exists ? '••••••••••••••••••••••••' : 'sk-… / AIzaSy… / sk-ant-…' }}"
+                                       placeholder="{{ $provider->exists ? '••••••••••••••••••••••••' : 'sk-… / AIzaSy… / sk-ant-… / your-api-key' }}"
                                        style="padding-right:44px;">
                                 <button type="button" id="toggle-key"
                                         style="position:absolute; right:12px; top:50%; transform:translateY(-50%); background:none; border:none; cursor:pointer; color:var(--muted); padding:4px;">
                                     <svg id="eye-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
                                 </button>
                             </div>
+                        </div>
+
+                        {{-- Base URL — shown for GLM and OpenAI-compatible providers --}}
+                        <div class="form-group" style="grid-column:1/-1;" id="base-url-row">
+                            <label class="form-label">
+                                API Base URL
+                                <span id="base-url-required-badge" style="color:var(--red);">*</span>
+                            </label>
+                            <input class="form-control" name="base_url" id="base-url-input"
+                                   value="{{ old('base_url', $provider->base_url) }}"
+                                   placeholder="https://open.bigmodel.cn/api/paas/v4/chat/completions">
+                            <span style="font-size:0.72rem; color:var(--muted); margin-top:3px;">
+                                Full endpoint URL. GLM default is pre-filled automatically. For OpenAI-compatible APIs (Groq, Together, Ollama, etc.) enter your custom endpoint.
+                            </span>
                         </div>
 
                     </div>
@@ -106,21 +115,36 @@
 
                         <div class="form-group" style="grid-column:1/-1;">
                             <label class="form-label">Model <span style="color:var(--red);">*</span></label>
-                            <select class="form-control" name="model" id="model-select">
-                                @php
-                                    $providerKey = old('provider', $provider->provider);
-                                    $options = $modelOptions[$providerKey] ?? [];
-                                    $currentModel = old('model', $provider->model);
-                                @endphp
-                                @if ($currentModel && !in_array($currentModel, $options, true))
+                            @php
+                                $providerKey  = old('provider', $provider->provider);
+                                $options      = $modelOptions[$providerKey] ?? [];
+                                $currentModel = old('model', $provider->model);
+                                $isCustom     = $providerKey === 'openai_compatible';
+                            @endphp
+
+                            {{-- Select (standard providers) --}}
+                            <select class="form-control" name="model" id="model-select"
+                                    style="{{ $isCustom ? 'display:none;' : '' }}">
+                                @if ($currentModel && !in_array($currentModel, $options, true) && !$isCustom)
                                     <option value="{{ $currentModel }}" selected>{{ $currentModel }} (current)</option>
                                 @endif
                                 @foreach ($options as $opt)
                                     <option value="{{ $opt }}" @selected($currentModel === $opt)>{{ $opt }}</option>
                                 @endforeach
                             </select>
-                            <span style="font-size:0.72rem; color:var(--muted); margin-top:3px;">
+
+                            {{-- Text input (OpenAI-compatible — user types the model name) --}}
+                            <input class="form-control" id="model-custom-input"
+                                   placeholder="e.g. llama-3.1-70b, mixtral-8x7b, custom-model-name"
+                                   value="{{ $isCustom ? $currentModel : '' }}"
+                                   style="{{ $isCustom ? '' : 'display:none;' }}"
+                                   {{ $isCustom ? 'name=model' : '' }}>
+
+                            <span style="font-size:0.72rem; color:var(--muted); margin-top:3px;" id="model-hint-standard">
                                 Model list updates automatically when you change the provider above.
+                            </span>
+                            <span style="font-size:0.72rem; color:var(--muted); margin-top:3px; display:none;" id="model-hint-custom">
+                                Type the exact model ID that your API endpoint accepts.
                             </span>
                         </div>
 
@@ -201,31 +225,71 @@
     </form>
 
     <script>
-    // All models by provider
-    var modelMap = @json($modelOptions);
+    var modelMap      = @json($modelOptions);
+    var defaultUrls   = @json($defaultBaseUrls);
 
-    var providerSel = document.getElementById('provider-select');
-    var modelSel    = document.getElementById('model-select');
-    var currentModel = "{{ old('model', $provider->model) }}";
+    var providerSel   = document.getElementById('provider-select');
+    var modelSel      = document.getElementById('model-select');
+    var modelCustom   = document.getElementById('model-custom-input');
+    var hintStd       = document.getElementById('model-hint-standard');
+    var hintCustom    = document.getElementById('model-hint-custom');
+    var baseUrlRow    = document.getElementById('base-url-row');
+    var baseUrlInput  = document.getElementById('base-url-input');
+    var baseUrlBadge  = document.getElementById('base-url-required-badge');
 
-    if (providerSel) {
-        providerSel.addEventListener('change', function() {
-            var models = modelMap[this.value] || [];
+    var NEEDS_BASE_URL = ['openai_compatible'];
+
+    function updateProviderUI(providerVal) {
+        var isCustom  = providerVal === 'openai_compatible';
+        var needsUrl  = NEEDS_BASE_URL.indexOf(providerVal) !== -1;
+
+        // ── model field ──
+        if (isCustom) {
+            modelSel.style.display    = 'none';
+            modelSel.name             = '';
+            modelCustom.style.display = '';
+            modelCustom.name          = 'model';
+            hintStd.style.display     = 'none';
+            hintCustom.style.display  = '';
+        } else {
+            modelSel.style.display    = '';
+            modelSel.name             = 'model';
+            modelCustom.style.display = 'none';
+            modelCustom.name          = '';
+            hintStd.style.display     = '';
+            hintCustom.style.display  = 'none';
+
+            // Populate select
+            var models = modelMap[providerVal] || [];
             modelSel.innerHTML = '';
-            if (models.length === 0) {
-                var placeholder = document.createElement('option');
-                placeholder.value = '';
-                placeholder.textContent = '— no models defined —';
-                modelSel.appendChild(placeholder);
-                return;
-            }
             models.forEach(function(m, i) {
                 var opt = document.createElement('option');
-                opt.value = m;
-                opt.textContent = m;
+                opt.value = m; opt.textContent = m;
                 if (i === 0) opt.selected = true;
                 modelSel.appendChild(opt);
             });
+        }
+
+        // ── base URL row ──
+        if (needsUrl) {
+            baseUrlRow.style.display = '';
+            baseUrlBadge.style.display = providerVal === 'openai_compatible' ? '' : 'none';
+            // Auto-fill default URL if field is empty
+            if (! baseUrlInput.value && defaultUrls[providerVal]) {
+                baseUrlInput.value = defaultUrls[providerVal];
+            }
+        } else {
+            baseUrlRow.style.display = 'none';
+            baseUrlInput.value = '';
+        }
+    }
+
+    // Init on page load
+    updateProviderUI(providerSel ? providerSel.value : 'openai');
+
+    if (providerSel) {
+        providerSel.addEventListener('change', function() {
+            updateProviderUI(this.value);
         });
     }
 
@@ -241,8 +305,8 @@
     }
 
     // Show/hide API key
-    var toggleBtn  = document.getElementById('toggle-key');
-    var apiInput   = document.getElementById('api-key-input');
+    var toggleBtn = document.getElementById('toggle-key');
+    var apiInput  = document.getElementById('api-key-input');
     if (toggleBtn && apiInput) {
         toggleBtn.addEventListener('click', function() {
             apiInput.type = apiInput.type === 'password' ? 'text' : 'password';

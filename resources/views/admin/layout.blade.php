@@ -444,6 +444,10 @@
         .badge-sky::before    { background: var(--sky); }
         .badge-muted  { background: rgba(148,163,184,0.08); color: var(--muted); border: 1px solid var(--border); }
         .badge-muted::before  { background: var(--muted-2); }
+        .badge-purple { background: rgba(168,85,247,0.08); color: #c084fc; border: 1px solid rgba(168,85,247,0.2); }
+        .badge-purple::before { background: #a855f7; }
+        .badge-orange { background: rgba(249,115,22,0.08); color: #fb923c; border: 1px solid rgba(249,115,22,0.2); }
+        .badge-orange::before { background: #f97316; }
 
         /* Table pagination */
         .dt-footer {

@@ -11,6 +11,11 @@ class Article extends Model
 {
     use HasFactory;
 
+    public const VALID_CATEGORIES = [
+        'Technology', 'Artificial Intelligence', 'Business', 'Security',
+        'Science', 'Environment', 'Health', 'Gaming', 'Policy', 'Other',
+    ];
+
     protected $fillable = [
         'news_source_id',
         'ai_provider_id',
@@ -65,6 +70,12 @@ class Article extends Model
         return $query->where('status', 'active');
     }
 
+    /** Articles that have been AI-processed and are ready to show publicly. */
+    public function scopePublished($query)
+    {
+        return $query->whereNotNull('ai_generated_at');
+    }
+
     // ─────────────────────────────────────────────────────────────────
     // RELATIONSHIPS
     // ─────────────────────────────────────────────────────────────────
@@ -95,7 +106,23 @@ class Article extends Model
 
     public function displayContentHtml(): ?string
     {
-        return $this->generated_content_html;
+        $html = $this->generated_content_html;
+        if ($html === null || $html === '') {
+            return null;
+        }
+
+        return strip_tags($html, [
+            'h1','h2','h3','h4','h5','h6',
+            'p','br','hr',
+            'strong','em','b','i','u','s',
+            'ul','ol','li',
+            'a','img',
+            'blockquote',
+            'table','thead','tbody','tfoot','tr','th','td',
+            'code','pre',
+            'figure','figcaption',
+            'div','span','section',
+        ]);
     }
 
     public function faqItems(): array
@@ -141,6 +168,16 @@ class Article extends Model
     public function getRouteKeyName(): string
     {
         return 'slug';
+    }
+
+    // ─────────────────────────────────────────────────────────────────
+    // SLUG HELPER
+    // ─────────────────────────────────────────────────────────────────
+
+    public static function makeSlug(string $title, string $url): string
+    {
+        $base = Str::slug($title) ?: 'article';
+        return $base . '-' . substr(sha1($url), 0, 10);
     }
 
 }

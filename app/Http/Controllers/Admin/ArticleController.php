@@ -27,18 +27,25 @@ class ArticleController extends Controller
                       ->orWhere('slug', 'like', "%{$search}%");
                 });
             })
-            ->when($statusFilter === 'published', fn ($q) => $q->whereNotNull('ai_generated_at'))
+            ->when($statusFilter === 'published', fn ($q) => $q->published())
             ->when($statusFilter === 'inactive',  fn ($q) => $q->where('status', 'inactive'))
             ->when($statusFilter === 'draft',     fn ($q) => $q->whereNull('ai_generated_at'))
             ->latest('published_at')
             ->latest('id');
 
-        // Counts for filter tabs
+        // Counts for filter tabs — single aggregated query
+        $countRow = Article::query()->selectRaw("
+            count(*) as total_all,
+            sum(ai_generated_at is not null) as total_published,
+            sum(status = 'inactive') as total_inactive,
+            sum(ai_generated_at is null) as total_draft
+        ")->first();
+
         $counts = [
-            'all'       => Article::count(),
-            'published' => Article::whereNotNull('ai_generated_at')->count(),
-            'inactive'  => Article::where('status', 'inactive')->count(),
-            'draft'     => Article::whereNull('ai_generated_at')->count(),
+            'all'       => (int) $countRow->total_all,
+            'published' => (int) $countRow->total_published,
+            'inactive'  => (int) $countRow->total_inactive,
+            'draft'     => (int) $countRow->total_draft,
         ];
 
         return view('admin.articles.index', [
@@ -68,7 +75,7 @@ class ArticleController extends Controller
 
         $data['source_url']      = $data['source_url'] ?: 'manual://'.Str::uuid();
         $data['source_url_hash'] = sha1($data['source_url']);
-        $data['slug']            = $data['slug'] ?: $this->makeSlug($data['title'], $data['source_url']);
+        $data['slug']            = $data['slug'] ?: Article::makeSlug($data['title'], $data['source_url']);
         $data['scraped_at']      = now();
         $data['published_at']    = $data['published_at'] ?? now();
 
@@ -110,7 +117,7 @@ class ArticleController extends Controller
             $data['source_url_hash'] = sha1($data['source_url']);
         }
 
-        $data['slug']        = $data['slug'] ?: $this->makeSlug($data['title'], $data['source_url']);
+        $data['slug']        = $data['slug'] ?: Article::makeSlug($data['title'], $data['source_url']);
         $data['scraped_at']  = now();
 
         if ($isPublished) {
@@ -151,7 +158,7 @@ class ArticleController extends Controller
         $from     = $request->query('from', '');
         $to       = $request->query('to', '');
 
-        $base = Article::where('status', 'inactive')->whereNotNull('ai_generated_at');
+        $base = Article::published()->where('status', 'inactive');
 
         $categories = (clone $base)
             ->whereNotNull('category')
@@ -160,8 +167,8 @@ class ArticleController extends Controller
             ->orderBy('category')
             ->get();
 
-        $articles = Article::where('status', 'inactive')
-            ->whereNotNull('ai_generated_at')
+        $articles = Article::published()
+            ->where('status', 'inactive')
             ->when($category, fn ($q) => $q->where('category', $category))
             ->when($search, function ($q) use ($search) {
                 $q->where(function ($q) use ($search) {
@@ -278,10 +285,4 @@ class ArticleController extends Controller
         }
     }
 
-    protected function makeSlug(string $title, string $url): string
-    {
-        $base = Str::slug($title) ?: 'article';
-
-        return $base.'-'.substr(sha1($url), 0, 10);
-    }
 }

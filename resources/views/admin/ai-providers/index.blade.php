@@ -7,7 +7,7 @@
     <div class="page-head">
         <div class="page-head-left">
             <h1>AI Providers</h1>
-            <p>Configure Gemini, OpenAI, Claude, and DeepSeek API keys, models, and generation settings.</p>
+            <p>Configure AI providers — Gemini, OpenAI, Claude, DeepSeek, GLM (Zhipu), or any OpenAI-compatible API.</p>
         </div>
         <div class="page-head-actions">
             <a class="btn btn-primary" href="{{ route('admin.ai-providers.create') }}">
@@ -48,10 +48,24 @@
                         </td>
                         <td>
                             @php
-                                $providerColors = ['gemini' => 'badge-sky', 'openai' => 'badge-green', 'claude' => 'badge-amber', 'deepseek' => 'badge-indigo'];
-                                $cls = $providerColors[$provider->provider] ?? 'badge-muted';
+                                $providerColors = [
+                                    'gemini'            => 'badge-sky',
+                                    'openai'            => 'badge-green',
+                                    'claude'            => 'badge-amber',
+                                    'deepseek'          => 'badge-indigo',
+                                    'groq'              => 'badge-orange',
+                                    'glm'               => 'badge-purple',
+                                    'openai_compatible' => 'badge-muted',
+                                ];
+                                $providerLabels = [
+                                    'openai_compatible' => 'OAI Compat',
+                                    'groq'              => 'Groq',
+                                    'glm'               => 'GLM',
+                                ];
+                                $cls   = $providerColors[$provider->provider] ?? 'badge-muted';
+                                $label = $providerLabels[$provider->provider] ?? ucfirst($provider->provider);
                             @endphp
-                            <span class="badge {{ $cls }}">{{ ucfirst($provider->provider) }}</span>
+                            <span class="badge {{ $cls }}">{{ $label }}</span>
                         </td>
                         <td style="font-size:0.78rem; color:var(--muted); font-family:ui-monospace, monospace;">
                             {{ $provider->model ?: '—' }}

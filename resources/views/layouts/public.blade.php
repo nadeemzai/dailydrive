@@ -28,9 +28,7 @@
 @endif">
     <meta property="og:description" content="@yield('meta_description', 'AI-powered tech news.')">
     <meta property="og:url" content="{{ url()->current() }}">
-    @hasSection('og_image')
-        <meta property="og:image" content="@yield('og_image')">
-    @endif
+    <meta property="og:image" content="@hasSection('og_image')@yield('og_image')@else{{ asset('og-default.png') }}@endif">
 
     {{-- Twitter Card --}}
     <meta name="twitter:card" content="summary_large_image">
@@ -38,9 +36,7 @@
 @yield('seo_title')@else@yield('title', 'DAILYdRIVE')
 @endif">
     <meta name="twitter:description" content="@yield('meta_description', 'AI-powered tech news.')">
-    @hasSection('og_image')
-        <meta name="twitter:image" content="@yield('og_image')">
-    @endif
+    <meta name="twitter:image" content="@hasSection('og_image')@yield('og_image')@else{{ asset('og-default.png') }}@endif">
 
     <link rel="preconnect" href="https://fonts.bunny.net">
     <link href="https://fonts.bunny.net/css?family=inter:400,500,600,700,800,900&display=swap" rel="stylesheet">
@@ -2814,6 +2810,7 @@
         .bm-badge.has-items { display: flex; }
     </style>
     <meta name="csrf-token" content="{{ csrf_token() }}">
+    @yield('structured_data')
 </head>
 
 <body>

@@ -6,9 +6,59 @@
 @section('meta_keywords', $article->seoKeywords())
 @section('meta_author', 'DAILYdRIVE Editorial')
 @section('og_type', 'article')
-@if ($article->image_url)
-    @section('og_image', $article->image_url)
+@section('og_image', $article->image_url ?: asset('og-default.png'))
+
+@section('structured_data')
+@php
+    $jsonLdArticle = [
+        '@context'        => 'https://schema.org',
+        '@type'           => 'NewsArticle',
+        'headline'        => $article->displayTitle(),
+        'description'     => $article->seoDescription(),
+        'image'           => $article->image_url ? [$article->image_url] : [],
+        'datePublished'   => optional($article->published_at)->toIso8601String()
+                             ?? optional($article->scraped_at)->toIso8601String(),
+        'dateModified'    => $article->updated_at->toIso8601String(),
+        'author'          => [
+            '@type' => 'Organization',
+            'name'  => 'DAILYdRIVE Editorial',
+        ],
+        'publisher'       => [
+            '@type' => 'Organization',
+            'name'  => 'DAILYdRIVE',
+            'logo'  => [
+                '@type' => 'ImageObject',
+                'url'   => asset('favicon.ico'),
+            ],
+        ],
+        'mainEntityOfPage' => [
+            '@type' => 'WebPage',
+            '@id'   => url()->current(),
+        ],
+        'url' => url()->current(),
+    ];
+
+    $faqItems = $article->faqItems();
+@endphp
+<script type="application/ld+json">{!! json_encode($jsonLdArticle, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE) !!}</script>
+@if (!empty($faqItems))
+@php
+    $jsonLdFaq = [
+        '@context'   => 'https://schema.org',
+        '@type'      => 'FAQPage',
+        'mainEntity' => array_map(fn($faq) => [
+            '@type'          => 'Question',
+            'name'           => $faq['question'] ?? '',
+            'acceptedAnswer' => [
+                '@type' => 'Answer',
+                'text'  => $faq['answer'] ?? '',
+            ],
+        ], $faqItems),
+    ];
+@endphp
+<script type="application/ld+json">{!! json_encode($jsonLdFaq, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE) !!}</script>
 @endif
+@endsection
 
 @section('content')
     <style>

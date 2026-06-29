@@ -13,62 +13,45 @@ class ArticleController extends Controller
             return redirect()->route('articles.index', $request->only(['category', 'search']));
         }
 
-        $categories = Article::query()
-            ->whereNotNull('ai_generated_at')
-            ->whereNotNull('category')
-            ->select('category')
-            ->distinct()
-            ->orderBy('category')
-            ->pluck('category');
-
-        $categoryCards = Article::query()
-            ->whereNotNull('category')
-            ->selectRaw('category, count(*) as total')
-            ->groupBy('category')
-            ->orderBy('category')
-            ->pluck('total', 'category');
-
-        $carouselArticles = Article::query()
-            ->whereNotNull('ai_generated_at')
+        $carouselArticles = Article::published()
             ->whereNotNull('image_url')
             ->latest('published_at')
             ->limit(5)
             ->get();
 
-        $featuredArticle = Article::query()
-            ->whereNotNull('ai_generated_at')
+        $featuredArticle = Article::published()
             ->whereNotNull('image_url')
             ->whereNotIn('id', $carouselArticles->pluck('id'))
             ->latest('published_at')
             ->first();
 
-        $latestArticles = Article::query()
-            ->whereNotNull('ai_generated_at')
+        $latestArticles = Article::published()
             ->latest('published_at')
             ->limit(12)
             ->get();
 
-        $categoryGroups = [];
-        foreach ($categories as $cat) {
-            $catArticles = Article::query()
-                ->whereNotNull('ai_generated_at')
-                ->where('category', $cat)
-                ->latest('published_at')
-                ->limit(4)
-                ->get();
+        // Single query replaces the N*2 loop: load light columns, group in PHP
+        $allCategoryArticles = Article::published()
+            ->whereNotNull('category')
+            ->select([
+                'id', 'category', 'title', 'slug', 'image_url',
+                'published_at', 'scraped_at',
+                'generated_title', 'generated_excerpt', 'excerpt',
+                'views',
+            ])
+            ->latest('published_at')
+            ->get();
 
-            if ($catArticles->isNotEmpty()) {
-                $total = Article::query()
-                    ->whereNotNull('ai_generated_at')
-                    ->where('category', $cat)
-                    ->count();
+        $categoryGroups = $allCategoryArticles
+            ->groupBy('category')
+            ->map(fn ($items) => [
+                'articles' => $items->take(4),
+                'total'    => $items->count(),
+            ])
+            ->sortKeys()
+            ->all();
 
-                $categoryGroups[$cat] = [
-                    'articles' => $catArticles,
-                    'total'    => $total,
-                ];
-            }
-        }
+        $categoryCards = collect($categoryGroups)->map(fn ($g) => $g['total']);
 
         return view('articles.index', compact(
             'carouselArticles', 'featuredArticle', 'latestArticles', 'categoryGroups', 'categoryCards'
@@ -80,18 +63,16 @@ class ArticleController extends Controller
         $category = $request->query('category');
         $search   = $request->query('search');
 
-        $categories = Article::query()
-            ->whereNotNull('ai_generated_at')
+        $categories = Article::published()
             ->whereNotNull('category')
             ->selectRaw('category, count(*) as cnt')
             ->groupBy('category')
             ->orderBy('category')
             ->get();
 
-        $totalCount = Article::query()->whereNotNull('ai_generated_at')->count();
+        $totalCount = Article::published()->count();
 
-        $articles = Article::query()
-            ->whereNotNull('ai_generated_at')
+        $articles = Article::published()
             ->when($category, fn ($q) => $q->where('category', $category))
             ->when($search, function ($q) use ($search) {
                 $q->where(function ($q) use ($search) {
@@ -106,7 +87,7 @@ class ArticleController extends Controller
             ->withQueryString();
 
         $suggestedArticles = ($articles->isEmpty() && $search)
-            ? Article::query()->whereNotNull('ai_generated_at')->latest('published_at')->limit(3)->get()
+            ? Article::published()->latest('published_at')->limit(3)->get()
             : collect();
 
         return view('articles.listing', compact(
@@ -125,9 +106,8 @@ class ArticleController extends Controller
             session()->put($sessionKey, true);
         }
 
-        $related = Article::query()
+        $related = Article::published()
             ->where('id', '!=', $article->id)
-            ->whereNotNull('ai_generated_at')
             ->when($article->category, fn ($q) => $q->where('category', $article->category))
             ->latest('published_at')
             ->limit(3)

@@ -53,7 +53,7 @@ class ContentGenerationService
 
                     'title'       => $newTitle,
                     'slug'        => $newSlug,
-                    'author_name' => 'Farhan',
+                    'author_name' => config('site.author'),
 
                     'excerpt'      => $generated['excerpt'] ?: $article->excerpt,
                     'content_html' => $generated['content_html'] ?: $this->fallbackHtml($generated['excerpt'] ?: $article->excerpt),
@@ -134,15 +134,12 @@ class ContentGenerationService
             ? $systemPrompt
             : 'You are an expert SEO content writer and news editor who rewrites articles into high-quality, original, comprehensive blog posts.';
 
-        $categoryList = implode(', ', [
-            'Technology', 'Artificial Intelligence', 'Business', 'Security',
-            'Science', 'Environment', 'Health', 'Gaming', 'Policy', 'Other',
-        ]);
+        $categoryList = implode(', ', Article::VALID_CATEGORIES);
 
         $exampleJson = json_encode([
             'title'            => 'SEO-optimized headline for the article (max 60 characters)',
             'slug'             => 'seo-friendly-url-slug',
-            'author'           => 'Farhan',
+            'author'           => config('site.author'),
             'category'         => 'Technology',
             'meta_title'       => 'SEO meta title — same as or close to title (max 60 chars)',
             'meta_description' => 'Compelling SEO meta description summarizing the article (max 155 chars)',
@@ -174,7 +171,7 @@ class ContentGenerationService
 
             '=== MANDATORY RULES ===',
             '1. Rewrite everything in fresh, unique language. Never copy source sentences.',
-            '2. "author" MUST always be "Farhan".',
+            '2. "author" MUST always be "' . config('site.author') . '".',
             '3. "category" MUST be exactly one of: ' . $categoryList . '. Pick the best fit.',
             '4. "content_html" MUST be rich HTML using <h2>, <h3>, <p>, <ul>, <li>, <strong> tags. Minimum 600 words.',
             '5. "faq_items" MUST be an array of EXACTLY 5 objects, each with "question" and "answer" keys. Both must be non-empty strings.',
@@ -200,11 +197,14 @@ class ContentGenerationService
     protected function callProvider(AiProvider $provider, string $prompt): array
     {
         return match ($provider->provider) {
-            'openai'    => $this->callOpenAi($provider, $prompt),
-            'gemini'    => $this->callGemini($provider, $prompt),
-            'claude'    => $this->callClaude($provider, $prompt),
-            'deepseek'  => $this->callDeepSeek($provider, $prompt),
-            default     => throw new RuntimeException("Unsupported AI provider [{$provider->provider}]."),
+            'openai'             => $this->callOpenAi($provider, $prompt),
+            'gemini'             => $this->callGemini($provider, $prompt),
+            'claude'             => $this->callClaude($provider, $prompt),
+            'deepseek'           => $this->callDeepSeek($provider, $prompt),
+            'groq'               => $this->callOpenAiCompatible($provider, $prompt, 'https://api.groq.com/openai/v1/chat/completions'),
+            'glm'                => $this->callOpenAiCompatible($provider, $prompt, 'https://open.bigmodel.cn/api/paas/v4/chat/completions'),
+            'openai_compatible'  => $this->callOpenAiCompatible($provider, $prompt, $provider->base_url),
+            default              => throw new RuntimeException("Unsupported AI provider [{$provider->provider}]."),
         };
     }
 
@@ -233,6 +233,39 @@ class ContentGenerationService
 
         if (empty($content)) {
             throw new RuntimeException('OpenAI response contained no content.');
+        }
+
+        return $this->decodeJsonPayload((string) $content, $provider);
+    }
+
+    protected function callOpenAiCompatible(AiProvider $provider, string $prompt, ?string $baseUrl): array
+    {
+        if (empty($baseUrl)) {
+            throw new RuntimeException("Provider [{$provider->label}] has no base_url configured.");
+        }
+
+        $response = Http::withToken($provider->api_key)
+            ->acceptJson()
+            ->timeout(120)
+            ->post($baseUrl, [
+                'model'       => $provider->model,
+                'temperature' => (float) $provider->temperature,
+                'max_tokens'  => max(self::MIN_TOKENS, (int) $provider->max_tokens),
+                'messages'    => [
+                    ['role' => 'system', 'content' => 'You are an expert SEO content writer. Always respond with valid JSON only.'],
+                    ['role' => 'user',   'content' => $prompt],
+                ],
+            ]);
+
+        if (! $response->successful()) {
+            $this->logProviderFailure($provider, $response->status(), $response->body());
+            throw new RuntimeException("{$provider->label} request failed [{$response->status()}].");
+        }
+
+        $content = data_get($response->json(), 'choices.0.message.content', '');
+
+        if (empty($content)) {
+            throw new RuntimeException("{$provider->label} response contained no content.");
         }
 
         return $this->decodeJsonPayload((string) $content, $provider);
@@ -423,10 +456,7 @@ class ContentGenerationService
             throw new RuntimeException('AI response was not valid JSON.');
         }
 
-        $validCategories = [
-            'Technology', 'Artificial Intelligence', 'Business', 'Security',
-            'Science', 'Environment', 'Health', 'Gaming', 'Policy', 'Other',
-        ];
+        $validCategories = Article::VALID_CATEGORIES;
         $rawCategory = trim((string) ($data['category'] ?? ''));
         $category = in_array($rawCategory, $validCategories, true) ? $rawCategory : null;
 

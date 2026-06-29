@@ -15,6 +15,7 @@ class AiProvider extends Model
         'label',
         'api_key',
         'model',
+        'base_url',
         'system_prompt',
         'temperature',
         'max_tokens',

@@ -260,7 +260,7 @@ class NewsScraperService
 
         $sourceUrlHash = sha1($url);
         $existing = Article::query()->where('source_url_hash', $sourceUrlHash)->first();
-        $slug = $existing?->slug ?? $this->makeSlug($title, $url);
+        $slug = $existing?->slug ?? Article::makeSlug($title, $url);
 
         return Article::query()->updateOrCreate(
             ['source_url_hash' => $sourceUrlHash],
@@ -611,13 +611,6 @@ class NewsScraperService
         } catch (Throwable) {
             return null;
         }
-    }
-
-    protected function makeSlug(string $title, string $url): string
-    {
-        $base = Str::slug($title) ?: 'article';
-
-        return $base.'-'.substr(sha1($url), 0, 10);
     }
 
     protected function sourceToArray(NewsSource $source): array
