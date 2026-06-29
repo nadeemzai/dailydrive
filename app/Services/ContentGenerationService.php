@@ -3,6 +3,7 @@
 namespace App\Services;
 
 use App\Models\AiProvider;
+use App\Models\AiProviderType;
 use App\Models\Article;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
@@ -196,15 +197,19 @@ class ContentGenerationService
 
     protected function callProvider(AiProvider $provider, string $prompt): array
     {
-        return match ($provider->provider) {
-            'openai'             => $this->callOpenAi($provider, $prompt),
-            'gemini'             => $this->callGemini($provider, $prompt),
-            'claude'             => $this->callClaude($provider, $prompt),
-            'deepseek'           => $this->callDeepSeek($provider, $prompt),
-            'groq'               => $this->callOpenAiCompatible($provider, $prompt, 'https://api.groq.com/openai/v1/chat/completions'),
-            'glm'                => $this->callOpenAiCompatible($provider, $prompt, 'https://open.bigmodel.cn/api/paas/v4/chat/completions'),
-            'openai_compatible'  => $this->callOpenAiCompatible($provider, $prompt, $provider->base_url),
-            default              => throw new RuntimeException("Unsupported AI provider [{$provider->provider}]."),
+        $type     = AiProviderType::firstWhere('slug', $provider->provider);
+        $callType = $type?->call_type ?? 'openai_compatible';
+        $baseUrl  = ($type && $type->requires_base_url)
+            ? $provider->base_url
+            : ($type?->base_url ?? $provider->base_url);
+
+        return match ($callType) {
+            'openai'            => $this->callOpenAi($provider, $prompt),
+            'gemini'            => $this->callGemini($provider, $prompt),
+            'claude'            => $this->callClaude($provider, $prompt),
+            'deepseek'          => $this->callDeepSeek($provider, $prompt),
+            'openai_compatible' => $this->callOpenAiCompatible($provider, $prompt, $baseUrl),
+            default             => throw new RuntimeException("Unsupported call type [{$callType}] for provider [{$provider->provider}]."),
         };
     }
 

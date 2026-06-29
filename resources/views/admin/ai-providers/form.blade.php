@@ -46,13 +46,11 @@
                         <div class="form-group">
                             <label class="form-label">Provider <span style="color:var(--red);">*</span></label>
                             <select class="form-control" name="provider" id="provider-select">
-                                <option value="gemini"            @selected(old('provider', $provider->provider) === 'gemini')>Gemini (Google)</option>
-                                <option value="openai"            @selected(old('provider', $provider->provider) === 'openai')>OpenAI (GPT)</option>
-                                <option value="claude"            @selected(old('provider', $provider->provider) === 'claude')>Claude (Anthropic)</option>
-                                <option value="deepseek"          @selected(old('provider', $provider->provider) === 'deepseek')>DeepSeek AI</option>
-                                <option value="groq"              @selected(old('provider', $provider->provider) === 'groq')>Groq (Fast Inference)</option>
-                                <option value="glm"               @selected(old('provider', $provider->provider) === 'glm')>GLM (Zhipu AI)</option>
-                                <option value="openai_compatible" @selected(old('provider', $provider->provider) === 'openai_compatible')>OpenAI Compatible (Custom)</option>
+                                @foreach ($providerTypes as $pt)
+                                    <option value="{{ $pt->slug }}" @selected(old('provider', $provider->provider) === $pt->slug)>
+                                        {{ $pt->name }}
+                                    </option>
+                                @endforeach
                             </select>
                         </div>
 
@@ -237,7 +235,7 @@
     var baseUrlInput  = document.getElementById('base-url-input');
     var baseUrlBadge  = document.getElementById('base-url-required-badge');
 
-    var NEEDS_BASE_URL = ['openai_compatible'];
+    var NEEDS_BASE_URL = @json($requiresBaseUrlSlugs);
 
     function updateProviderUI(providerVal) {
         var isCustom  = providerVal === 'openai_compatible';

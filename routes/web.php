@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\Admin\ArticleController as AdminArticleController;
 use App\Http\Controllers\Admin\AiProviderController;
+use App\Http\Controllers\Admin\AiProviderTypeController;
 use App\Http\Controllers\Admin\AuthController as AdminAuthController;
 use App\Http\Controllers\Admin\DashboardController;
 use App\Http\Controllers\Admin\SourceController as AdminSourceController;
@@ -43,6 +44,7 @@ Route::prefix('admin')->name('admin.')->middleware(\App\Http\Middleware\AdminMid
     Route::get('archive',                        [AdminArticleController::class, 'archive'])->name('archive');
 
     Route::resource('ai-providers', AiProviderController::class)->except(['show']);
+    Route::resource('ai-provider-types', AiProviderTypeController::class)->except(['show']);
     Route::resource('sources', AdminSourceController::class)->except(['show']);
 
     Route::get('subscribers', [SubscriberController::class, 'index'])->name('subscribers.index');

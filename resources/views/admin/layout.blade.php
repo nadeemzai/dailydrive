@@ -642,6 +642,11 @@
                 <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>
                 AI Providers
             </a>
+            <a href="{{ route('admin.ai-provider-types.index') }}"
+               class="sidebar-link {{ request()->routeIs('admin.ai-provider-types.*') ? 'active' : '' }}">
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><circle cx="17.5" cy="17.5" r="3.5"/></svg>
+                Provider Registry
+            </a>
 
             <div class="sidebar-nav-label" style="margin-top:8px;">Audience</div>
             <a href="{{ route('admin.subscribers.index') }}"
